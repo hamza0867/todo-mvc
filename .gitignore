@@ -7,3 +7,4 @@ npm-debug.log
 /bundleOutput/
 dist/
 src/node_modules
+**/*.bs.js
