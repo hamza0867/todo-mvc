@@ -1,5 +1,10 @@
 open Belt;
 
+module Decode = Decode.AsResult.OfParseError;
+let ((<$>), (<*>)) = Decode.(map, apply);
+
+let persistentKey = "todos-reason-react";
+
 let rec any = (xs, predicate) =>
   switch (xs) {
   | [] => false
@@ -11,10 +16,30 @@ let rec any = (xs, predicate) =>
     }
   };
 
-type todo = {
-  title: string,
-  completed: bool,
-  id: int,
+module Todo = {
+  type t = {
+    title: string,
+    completed: bool,
+    id: int,
+  };
+  let make = (title, completed, id) => {title, completed, id};
+
+  let decode =
+    Decode.(
+      make
+      <$> field("title", string)
+      <*> field("completed", boolean)
+      <*> field("id", intFromNumber)
+    );
+
+  let encode = (todo): Js.Json.t => {
+    Js.Dict.fromList([
+      ("title", Js.Json.string(todo.title)),
+      ("completed", Js.Json.boolean(todo.completed)),
+      ("id", Js.Json.number(todo.id->float_of_int)),
+    ])
+    ->Js.Json.object_;
+  };
 };
 
 type todosFilter =
@@ -25,11 +50,47 @@ type todosFilter =
 type state = {
   nextId: int,
   inputField: string,
-  todos: list(todo),
+  todos: list(Todo.t),
   filter: todosFilter,
 };
 
+module PersistentState = {
+  type t = {
+    nextId: int,
+    todos: list(Todo.t),
+  };
+
+  let make = (nextId, todos) => {nextId, todos};
+
+  let decode =
+    Decode.(
+      make
+      <$> field("nextId", intFromNumber)
+      <*> field("todos", list(Todo.decode))
+    );
+
+  let encode = (persistentState): Js.Json.t => {
+    Js.Dict.fromList([
+      ("nextId", Js.Json.number(persistentState.nextId->float_of_int)),
+      (
+        "todos",
+        persistentState.todos
+        ->List.map(Todo.encode)
+        ->List.toArray
+        ->Js.Json.array,
+      ),
+    ])
+    ->Js.Json.object_;
+  };
+
+  let fromState = (state: state): t => {
+    nextId: state.nextId,
+    todos: state.todos,
+  };
+};
+
 type action =
+  | UpdateState(PersistentState.t)
   | UpdateFilter(todosFilter)
   | ClearCompleted
   | DeleteTodo(int)
@@ -37,20 +98,48 @@ type action =
   | UpdateInputField(string)
   | CompleteAll
   | ToggleTodo(int)
-  | UpdateTodo(int, todo);
+  | UpdateTodo(int, Todo.t);
 
 let reducer = (state, action) =>
   switch (action) {
+  | UpdateState(persistentState) => {
+      ...state,
+      todos: persistentState.todos,
+      nextId: persistentState.nextId,
+    }
   | UpdateFilter(filter) => {...state, filter}
-  | ClearCompleted => {
+  | ClearCompleted =>
+    let newState = {
       ...state,
       todos: state.todos->List.keep(todo => !todo.completed),
-    }
-  | DeleteTodo(id) => {
+    };
+    Dom.Storage2.(
+      setItem(
+        localStorage,
+        persistentKey,
+        Js.Json.stringify(
+          newState->PersistentState.fromState->PersistentState.encode,
+        ),
+      )
+    );
+    newState;
+  | DeleteTodo(id) =>
+    let newState = {
       ...state,
       todos: state.todos->List.keep(todo => todo.id != id),
-    }
-  | AddTodo => {
+    };
+    Dom.Storage2.(
+      setItem(
+        localStorage,
+        persistentKey,
+        Js.Json.stringify(
+          newState->PersistentState.fromState->PersistentState.encode,
+        ),
+      )
+    );
+    newState;
+  | AddTodo =>
+    let newState = {
       ...state,
       inputField: "",
       nextId: state.nextId + 1,
@@ -61,16 +150,38 @@ let reducer = (state, action) =>
             {id: state.nextId + 1, completed: false, title: state.inputField},
           ],
         ),
-    }
+    };
+    Dom.Storage2.(
+      setItem(
+        localStorage,
+        persistentKey,
+        Js.Json.stringify(
+          newState->PersistentState.fromState->PersistentState.encode,
+        ),
+      )
+    );
+    newState;
   | UpdateInputField(inputField) => {...state, inputField}
-  | CompleteAll => {
+  | CompleteAll =>
+    let newState = {
       ...state,
       todos: {
         let completed = any(state.todos, todo => !todo.completed);
         state.todos->List.map(todo => {...todo, completed});
       },
-    }
-  | ToggleTodo(id) => {
+    };
+    Dom.Storage2.(
+      setItem(
+        localStorage,
+        persistentKey,
+        Js.Json.stringify(
+          newState->PersistentState.fromState->PersistentState.encode,
+        ),
+      )
+    );
+    newState;
+  | ToggleTodo(id) =>
+    let newState = {
       ...state,
       todos: {
         state.todos
@@ -82,8 +193,19 @@ let reducer = (state, action) =>
             }
           );
       },
-    }
-  | UpdateTodo(id, todo) => {
+    };
+    Dom.Storage2.(
+      setItem(
+        localStorage,
+        persistentKey,
+        Js.Json.stringify(
+          newState->PersistentState.fromState->PersistentState.encode,
+        ),
+      )
+    );
+    newState;
+  | UpdateTodo(id, todo) =>
+    let newState = {
       ...state,
       todos: {
         state.todos
@@ -95,15 +217,33 @@ let reducer = (state, action) =>
             }
           );
       },
-    }
+    };
+    Dom.Storage2.(
+      setItem(
+        localStorage,
+        persistentKey,
+        Js.Json.stringify(
+          newState->PersistentState.fromState->PersistentState.encode,
+        ),
+      )
+    );
+    newState;
   };
 
 let initialState = {nextId: 0, inputField: "", todos: [], filter: All};
 
-module Todo = {
+module TodoView = {
   [@react.component]
-  let make = (~todo: todo, ~dispatch) => {
+  let make = (~todo: Todo.t, ~dispatch) => {
     let (editing, setEditing) = React.useState(() => false);
+    let (inputValue, setInputValue) = React.useState(() => todo.title);
+    React.useEffect1(
+      () => {
+        setInputValue(_ => todo.title);
+        None;
+      },
+      [|todo.title|],
+    );
     <li
       className={
         (todo.completed ? "completed " : "") ++ (editing ? "editing" : "")
@@ -127,15 +267,16 @@ module Todo = {
          <input
            autoFocus=true
            className="edit"
-           value={todo.title}
+           value=inputValue
            onChange={e => {
              let title = ReactEvent.Form.target(e)##value;
-             dispatch(UpdateTodo(todo.id, {...todo, title}));
+             setInputValue(_ => title);
            }}
            onKeyUp={e => {
              let key = ReactEvent.Keyboard.key(e);
              if (key == "Enter") {
                setEditing(_ => false);
+               dispatch(UpdateTodo(todo.id, {...todo, title: inputValue}));
              } else {
                ();
              };
@@ -158,6 +299,7 @@ let make = () => {
   let (remainingTodos, completedTodos) =
     todos->List.partition(todo => !todo.completed);
   let remainingTodosLength = remainingTodos->List.length;
+  let completedTodosLength = completedTodos->List.length;
   let allComplete = remainingTodosLength == 0;
   let url = ReasonReactRouter.useUrl();
   let visibleTodos =
@@ -178,6 +320,25 @@ let make = () => {
     },
     [|url.hash|],
   );
+  React.useEffect0(() => {
+    let persistentStateMaybe =
+      Dom.Storage.(getItem(persistentKey, localStorage));
+    switch (persistentStateMaybe) {
+    | Some(str) =>
+      switch (Js.Json.parseExn(str)) {
+      | json =>
+        let persistentStateResult = PersistentState.decode(json);
+        switch (persistentStateResult) {
+        | Ok(persistentState) => dispatch(UpdateState(persistentState))
+        | Error(err) =>
+          Js.Console.error(Decode.ParseError.failureToDebugString(err))
+        };
+      | exception x => Js.Console.error(x)
+      }
+    | None => ()
+    };
+    None;
+  });
   <>
     <section className="todoapp">
       <header className="header">
@@ -220,7 +381,7 @@ let make = () => {
 
                  {visibleTodos
                   ->List.map(todo =>
-                      <Todo dispatch todo key={string_of_int(todo.id)} />
+                      <TodoView dispatch todo key={string_of_int(todo.id)} />
                     )
                   ->List.toArray
                   ->React.array}
@@ -251,7 +412,7 @@ let make = () => {
                  </li>
                </ul>
                /*<!-- Hidden if no completed items are left ↓ -->*/
-               {if (!allComplete) {
+               {if (completedTodosLength > 0) {
                   <button
                     className="clear-completed"
                     onClick={_ => dispatch(ClearCompleted)}>

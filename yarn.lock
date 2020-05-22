@@ -513,6 +513,11 @@ binary-extensions@^2.0.0:
   resolved "https://registry.yarnpkg.com/binary-extensions/-/binary-extensions-2.0.0.tgz#23c0df14f6a88077f5f986c0d167ec03c3d5537c"
   integrity sha512-Phlt0plgpIIBOGTT/ehfFnbNlfsDEiqmzE2KRXoX1bLIlir4X/MR+zSyBEkL05ffWgnRSf/DXv+WrUAVr93/ow==
 
+bisect_ppx@^2.1.0, bisect_ppx@^2.4.1:
+  version "2.4.1"
+  resolved "https://registry.yarnpkg.com/bisect_ppx/-/bisect_ppx-2.4.1.tgz#57a0743abc6b39e148e83ca840df11133c0d5960"
+  integrity sha512-U6sd2mMqg28NEBmB4NuJRUJq0aTrzVCIkv8bnbzaomIZfO0DMWZ7B8QJ5aBY46tbaIeNrvmYWylnNNaoPEWZmw==
+
 bluebird@^3.1.1:
   version "3.7.2"
   resolved "https://registry.yarnpkg.com/bluebird/-/bluebird-3.7.2.tgz#9f229c15be272454ffa973ace0dbee79a1b0c36f"
@@ -547,10 +552,28 @@ browserslist@^4.0.0:
     node-releases "^1.1.53"
     pkg-up "^2.0.0"
 
+bs-bastet@^1.2.5:
+  version "1.2.5"
+  resolved "https://registry.yarnpkg.com/bs-bastet/-/bs-bastet-1.2.5.tgz#cde1add087e845d428a03c6d8412bd781713ccae"
+  integrity sha512-XIMv0CpovzTXmrEnzwnY2M3MuuesbGSzs+yaFvb3NAVyIP/aLlXCRv/roH6qybDBIGwW9JjbB7lxo73yqMi1qg==
+  dependencies:
+    bisect_ppx "^2.1.0"
+    bs-stdlib-shims "^0.1.0"
+
+bs-decode@^0.11.1:
+  version "0.11.1"
+  resolved "https://registry.yarnpkg.com/bs-decode/-/bs-decode-0.11.1.tgz#fea35bf3e3f9cb569cc6c44e1e3e2185649f6286"
+  integrity sha512-/OwmLsKuqLFslQYrKd1g6XqKYacuikGGaRqBetXnZdlUO1sBGjl6sxflLmXJXsfllF68udG/AvrcbcE65e7eKQ==
+
 bs-platform@^7.3.2:
   version "7.3.2"
   resolved "https://registry.yarnpkg.com/bs-platform/-/bs-platform-7.3.2.tgz#301f5c9b4e8cf5713cb60ca22e145e56e793affe"
   integrity sha512-seJL5g4anK9la4erv+B2o2sMHQCxDF6OCRl9en3hbaUos/S3JsusQ0sPp4ORsbx5eXfHLYBwPljwKXlgpXtsgQ==
+
+bs-stdlib-shims@^0.1.0:
+  version "0.1.0"
+  resolved "https://registry.yarnpkg.com/bs-stdlib-shims/-/bs-stdlib-shims-0.1.0.tgz#f64166392652a07c37b9be462beebb6c0c66a74e"
+  integrity sha512-CszWow8iXOKgmzNCc5dR3kERaqzIp3f4nbV7lJF5vS9BHm70GqLlu7OBE/VCPKZ5noG1VtJAIVqIdLFqUdIRUQ==
 
 buffer-from@^1.0.0:
   version "1.1.1"
@@ -2475,6 +2498,13 @@ regjsparser@^0.6.4:
   integrity sha512-64O87/dPDgfk8/RQqC4gkZoGyyWFIEUTTh80CU6CWuK5vkCGyekIx+oKcEIYtP/RAxSQltCZHCNu/mdd7fqlJw==
   dependencies:
     jsesc "~0.5.0"
+
+relude@^0.63.1:
+  version "0.63.1"
+  resolved "https://registry.yarnpkg.com/relude/-/relude-0.63.1.tgz#a2d4b0bf64a9db287b1ba860253f9fb06962057f"
+  integrity sha512-6ZSfdvIBSivTvvWca0+g99gfJwKh4yzFtxFzX1URYeJ2ZNVylOfSA6FF3oon7VOzJS9+EIOoy32xC2VjTtpzGA==
+  dependencies:
+    bisect_ppx "^2.4.1"
 
 requires-port@^1.0.0:
   version "1.0.0"

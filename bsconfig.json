@@ -20,6 +20,6 @@
   ],
   "suffix": ".bs.js",
   "namespace": true,
-  "bs-dependencies": ["reason-react"],
+  "bs-dependencies": ["reason-react", "relude", "bs-bastet", "bs-decode"],
   "refmt": 3
 }
