@@ -20,7 +20,7 @@
     "relude": "^0.63.1",
     "todomvc-app-css": "^2.3.0",
     "todomvc-common": "^1.0.5",
-    "vite": "^0.16.6",
+    "vite": "^2.9.13",
     "vite-plugin-react": "^1.1.0"
   }
 }
